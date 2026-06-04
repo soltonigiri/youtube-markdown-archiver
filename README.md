@@ -1,26 +1,26 @@
 # youtube-markdown-archiver
 
-youtube-markdown-archiver is a local Python CLI that turns YouTube metadata, subtitles, ASR output, and OCR text into searchable Markdown archives.
+youtube-markdown-archiver は、YouTube のメタデータ、字幕、ASR 出力、OCR テキストを統合し、検索しやすい Markdown アーカイブとして保存するローカル Python CLI です。
 
-It is designed for research notes, video review, and personal knowledge management workflows where the durable output should be text files, JSONL artifacts, and a small SQLite index instead of downloaded media files.
+研究メモ、動画レビュー、個人の知識管理を想定しています。動画や音声ファイルそのものではなく、Markdown、JSONL、小さな SQLite インデックスを長期的な成果物として残す設計です。
 
-## Features
+## 機能
 
-- Inspect YouTube URLs and capture normalized metadata.
-- Download and normalize manual or automatic subtitles when available.
-- Run ASR with `faster-whisper` when subtitles are missing or weak.
-- Extract visual text through OCR when enabled.
-- Merge subtitle, ASR, OCR, speaker, and quality signals into archive files.
-- Write Markdown, JSONL, export formats, quality reports, and SQLite search indexes.
-- Keep heavy video/audio files as temporary processing inputs rather than published artifacts.
+- YouTube URL を検査し、正規化したメタデータを取得します。
+- 利用可能な手動字幕または自動字幕を取得し、扱いやすい形に正規化します。
+- 字幕がない、または品質が不十分な場合に `faster-whisper` で ASR を実行します。
+- OCR を有効にした場合、画面内の文字情報を抽出します。
+- 字幕、ASR、OCR、話者、品質情報を統合してアーカイブを生成します。
+- Markdown、JSONL、エクスポート用ファイル、品質レポート、SQLite 検索インデックスを書き出します。
+- 重い動画・音声ファイルは一時処理用の入力として扱い、公開成果物には含めません。
 
-## Install
+## インストール
 
 ```bash
 python -m pip install -e ".[dev]"
 ```
 
-For real video processing, install only the feature groups you need:
+実動画を処理する場合は、必要な機能だけを追加でインストールしてください。
 
 ```bash
 python -m pip install -e ".[core,download,subtitle]"
@@ -30,10 +30,10 @@ python -m pip install -e ".[diarization]"
 python -m pip install -e ".[full]"
 ```
 
-The default development install is intentionally light. Unit tests and imports do not require video downloads, ASR models, OCR engines, or diarization models.
-Run `doctor` after installing the feature extras you intend to use. With only `.[dev]`, it may report missing runtime tools such as `yt-dlp` or `faster-whisper`.
+標準の開発用インストールは意図的に軽量です。単体テストと import 確認には、動画ダウンロード、ASR モデル、OCR エンジン、話者分離モデルは不要です。
+実際に使う機能の extra を入れたあとで `doctor` を実行してください。`.[dev]` だけの状態では、`yt-dlp` や `faster-whisper` などの実行時ツール不足が報告されることがあります。
 
-## Quick Start
+## クイックスタート
 
 ```bash
 python -m yomutube doctor --json
@@ -41,7 +41,7 @@ python -m yomutube inspect "https://www.youtube.com/watch?v=VIDEO_ID"
 python -m yomutube transcribe "https://www.youtube.com/watch?v=VIDEO_ID" --mode standard
 ```
 
-By default, runtime artifacts are written under `data/`:
+既定では、実行時の成果物は `data/` 以下に保存されます。
 
 ```text
 data/
@@ -51,9 +51,9 @@ data/
   cache/
 ```
 
-These paths are ignored by Git.
+これらのパスは Git の管理対象外です。
 
-## Common Commands
+## よく使うコマンド
 
 ```bash
 python -m yomutube transcribe URL --mode quick
@@ -69,9 +69,9 @@ python -m yomutube export VIDEO_ID --format srt
 python -m yomutube quote VIDEO_ID --at 00:01:23
 ```
 
-## Output Shape
+## 出力形式
 
-A completed archive is organized around a manifest and text-first artifacts:
+処理済みのアーカイブは、manifest とテキスト中心の成果物で構成されます。
 
 ```text
 data/archives/<channel>/<title>/
@@ -82,17 +82,17 @@ data/archives/<channel>/<title>/
   quality_report.json
 ```
 
-`index.md` is the human-facing reading surface. JSONL files preserve structured segments for search, export, and later reprocessing.
+`index.md` は人間が読むための主要ファイルです。JSONL ファイルには、検索、エクスポート、再処理に使える構造化済みセグメントを保存します。
 
-See `examples/sample_archive/` for a small fictional archive.
+小さな架空サンプルとして `examples/sample_archive/` を用意しています。
 
-## Data And Rights
+## データと権利
 
-This repository does not include videos, audio files, model caches, cookies, or processed archives from real videos.
+このリポジトリには、動画、音声ファイル、モデルキャッシュ、cookie、実動画由来の処理済みアーカイブは含めていません。
 
-You are responsible for following YouTube's terms, the rights of each video owner, and the rules that apply to downloaded subtitles, audio, OCR text, and generated archives. Do not publish processed archives unless you have the right to publish that material.
+YouTube の規約、各動画の権利者の権利、ダウンロードした字幕・音声・OCR テキスト・生成アーカイブに適用されるルールは、利用者自身が確認してください。公開する権利がない処理済みアーカイブを公開しないでください。
 
-## Development
+## 開発
 
 ```bash
 python -m pip install -e ".[dev]"
@@ -100,6 +100,6 @@ pytest -q
 python -m yomutube index --archive-dir tests/fixtures/archive --output /tmp/yomutube-test.db
 ```
 
-## License
+## ライセンス
 
-MIT. The license covers this source code. It does not grant rights to third-party videos, subtitles, audio, OCR results, model weights, or platform content.
+MIT License です。このライセンスの対象は、このリポジトリ内のソースコードです。第三者の動画、字幕、音声、OCR 結果、モデルの重み、プラットフォーム上のコンテンツに対する権利を付与するものではありません。
