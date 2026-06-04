@@ -16,6 +16,14 @@ youtube-markdown-archiver は、YouTube のメタデータ、字幕、ASR 出力
 
 ## インストール
 
+Python 3.10 以上が必要です。まず仮想環境を作り、以後の `python` と `yomutube` が同じ環境を参照するようにしてください。
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+```
+
 ```bash
 python -m pip install -e ".[dev]"
 ```
@@ -26,12 +34,24 @@ python -m pip install -e ".[dev]"
 python -m pip install -e ".[core,download,subtitle]"
 python -m pip install -e ".[asr]"
 python -m pip install -e ".[ocr]"
+python -m pip install -e ".[paddleocr]"
 python -m pip install -e ".[diarization]"
 python -m pip install -e ".[full]"
 ```
 
-標準の開発用インストールは意図的に軽量です。単体テストと import 確認には、動画ダウンロード、ASR モデル、OCR エンジン、話者分離モデルは不要です。
-実際に使う機能の extra を入れたあとで `doctor` を実行してください。`.[dev]` だけの状態では、`yt-dlp` や `faster-whisper` などの実行時ツール不足が報告されることがあります。
+標準の開発用インストールは意図的に軽量です。単体テストと import 確認には、動画ダウンロード、ASR モデル、OCR エンジン、話者分離モデルは不要です。開発と実動画処理を同じ環境で行う場合は、例えば `python -m pip install -e ".[dev,full]"` を使います。
+
+Python package 以外に、実動画処理では次の command line tool が必要です。インストール方法は OS によって異なるため、各OSの package manager で入れて PATH に置いてください。
+
+- `ffmpeg`: 音声抽出と media 変換に必須。
+- `ffprobe`: media 情報の取得に必須。
+- `tesseract`: Tesseract OCR を使う場合に必要。日本語や英語の OCR には `jpn` / `eng` などの tessdata も必要です。
+
+`.[ocr]` は OpenCV と Tesseract の Python adapter を入れます。PaddleOCR fallback まで使う場合だけ、追加で `.[paddleocr]` を入れてください。PaddleOCR / PaddlePaddle は重く、環境差が大きいため `.[full]` には含めていません。
+
+話者分離で既定の `pyannote` engine を使う場合は、Hugging Face で対象 model の利用条件を承認し、`HF_TOKEN` を設定する必要があります。認証なしで軽く確認する場合は、設定ファイルで `diarization.engine: local_cluster` を使ってください。
+
+実際に使う機能の extra と system dependency を入れたあとで `doctor` を実行してください。仮想環境を有効化していない状態では、`yt-dlp` などの実行時 tool 不足が報告されることがあります。
 
 ## クイックスタート
 

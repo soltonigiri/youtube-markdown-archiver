@@ -98,7 +98,7 @@ def run_doctor(config: AppConfig | None = None) -> list[CheckResult]:
     module_guidance = {
         "faster_whisper": ("ASR transcription cannot run", "Install the asr extra."),
         "cv2": ("frame preprocessing and OCR image handling may be limited", "Install the ocr extra."),
-        "paddleocr": ("PaddleOCR engine is unavailable", "Install the ocr extra if PaddleOCR is needed."),
+        "paddleocr": ("PaddleOCR engine is unavailable", "Install the paddleocr extra if PaddleOCR is needed."),
         "pytesseract": ("Tesseract Python OCR adapter is unavailable", "Install the ocr extra if Tesseract OCR is needed."),
         "yaml": ("configuration loading cannot run", "Install the core dependencies."),
         "typer": ("CLI cannot run", "Install the core dependencies."),

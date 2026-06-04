@@ -40,6 +40,10 @@ ocr = [
   "opencv-python>=4.8",
   "pytesseract>=0.3",
 ]
+paddleocr = [
+  "paddleocr>=3.0",
+  "paddlepaddle>=3.0",
+]
 diarization = [
   "pyannote.audio>=3.1",
 ]
