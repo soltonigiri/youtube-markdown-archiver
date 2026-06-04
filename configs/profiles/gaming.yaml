@@ -1,0 +1,4 @@
+asr:
+  model: small
+ocr:
+  enabled: false

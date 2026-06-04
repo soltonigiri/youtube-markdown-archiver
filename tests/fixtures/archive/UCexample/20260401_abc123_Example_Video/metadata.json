@@ -1,0 +1,9 @@
+{
+  "channel_id": "UCexample",
+  "channel_name": "Example Channel",
+  "duration_sec": 1234,
+  "title": "Example Video",
+  "upload_date": "2026-04-01",
+  "video_id": "abc123",
+  "webpage_url": "https://www.youtube.com/watch?v=abc123"
+}

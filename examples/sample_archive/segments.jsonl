@@ -1,0 +1,2 @@
+{"end_ms":3200,"id":"seg_001","source":"subtitle","start_ms":1000,"text":"This is a sample subtitle segment.","video_id":"abc123"}
+{"end_ms":8700,"id":"seg_002","source":"ocr","start_ms":6200,"text":"Slide title: Local video notes","video_id":"abc123"}

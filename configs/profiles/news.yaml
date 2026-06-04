@@ -1,0 +1,16 @@
+asr:
+  model: medium
+ocr:
+  regions:
+    - name: lower_third
+      role: lower_third
+      enabled: true
+      x: 0.04
+      y: 0.72
+      w: 0.92
+      h: 0.22
+      preprocess:
+        upscale: 2.0
+        grayscale: true
+        denoise: true
+        threshold: adaptive

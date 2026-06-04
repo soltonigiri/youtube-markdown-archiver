@@ -1,0 +1,2 @@
+{"end_ms":3000,"id":"seg_001","source":"fused","start_ms":1240,"text":"Local pipeline introduction.","video_id":"abc123"}
+{"end_ms":9800,"id":"seg_002","metadata":{"region":"slide"},"source":"ocr","start_ms":9300,"text":"YomuTube = YouTube -> Markdown Archive","video_id":"abc123"}

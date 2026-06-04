@@ -1,0 +1,26 @@
+ocr:
+  regions:
+    - name: bottom_caption
+      role: caption
+      enabled: true
+      x: 0.05
+      y: 0.68
+      w: 0.90
+      h: 0.28
+      preprocess:
+        upscale: 2.0
+        grayscale: true
+        denoise: true
+        threshold: adaptive
+    - name: full_frame
+      role: slide
+      enabled: true
+      x: 0.00
+      y: 0.00
+      w: 1.00
+      h: 1.00
+      preprocess:
+        upscale: 1.0
+        grayscale: false
+        denoise: false
+        threshold: none

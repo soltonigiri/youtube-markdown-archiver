@@ -1,0 +1,82 @@
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "youtube-markdown-archiver"
+version = "0.1.0"
+description = "Local CLI pipeline for turning YouTube metadata, subtitles, ASR, and OCR into Markdown archives"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+  "pydantic>=2.0",
+  "PyYAML>=6.0",
+  "typer>=0.12",
+  "rich>=13.0",
+  "webvtt-py>=0.5",
+]
+
+[project.optional-dependencies]
+core = [
+  "pydantic>=2.0",
+  "PyYAML>=6.0",
+  "typer>=0.12",
+  "rich>=13.0",
+  "webvtt-py>=0.5",
+]
+download = [
+  "yt-dlp>=2025.1.1",
+]
+subtitle = [
+  "pysubs2>=1.6",
+  "jsonlines>=4.0",
+]
+asr = [
+  "faster-whisper>=1.0",
+  "rapidfuzz>=3.0",
+]
+ocr = [
+  "opencv-python>=4.8",
+  "pytesseract>=0.3",
+]
+diarization = [
+  "pyannote.audio>=3.1",
+]
+full = [
+  "yt-dlp>=2025.1.1",
+  "pysubs2>=1.6",
+  "jsonlines>=4.0",
+  "faster-whisper>=1.0",
+  "rapidfuzz>=3.0",
+  "opencv-python>=4.8",
+  "pytesseract>=0.3",
+  "pyannote.audio>=3.1",
+]
+dev = [
+  "pytest>=8.0",
+]
+
+[project.scripts]
+yomutube = "yomutube.cli:app"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/yomutube"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"configs" = "configs"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "src/yomutube",
+  "configs",
+  "examples",
+  "README.md",
+  "LICENSE",
+  "仕様書.md",
+]
