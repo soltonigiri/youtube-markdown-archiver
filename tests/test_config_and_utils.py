@@ -16,7 +16,7 @@ def test_deep_update_keeps_nested_values() -> None:
 def test_default_config_loads() -> None:
     config = AppConfig.load()
     assert config.version == "0.1.0"
-    assert config.get("asr.model") == "medium"
+    assert config.get("asr.model") == "large-v3"
     assert config.get("asr.when") == "no_good_subtitle"
     assert config.get("ocr.enabled") is False
     assert config.get("ocr.primary_engine") == "tesseract"
@@ -28,7 +28,7 @@ def test_default_config_loads() -> None:
 def test_standard_mode_is_normal_transcribe_default() -> None:
     config = AppConfig.load().with_mode("standard")
     assert config.get("asr.when") == "no_good_subtitle"
-    assert config.get("asr.model") == "medium"
+    assert config.get("asr.model") == "large-v3"
     assert config.get("ocr.enabled") is False
     assert config.get("diarization.enabled") is False
 

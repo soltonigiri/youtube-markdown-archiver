@@ -30,7 +30,7 @@ class ASREngine(Protocol):
 class ASRSettings:
     enabled: bool = True
     engine: str = "faster-whisper"
-    model: str = "medium"
+    model: str = "large-v3"
     device: str = "cuda"
     strict_device: bool = False
     compute_type: str = "int8_float16"
@@ -50,7 +50,7 @@ class ASRSettings:
         return cls(
             enabled=bool(section.get("enabled", True)),
             engine=str(section.get("engine", "faster-whisper")),
-            model=str(section.get("model", "medium")),
+            model=str(section.get("model", "large-v3")),
             device=str(section.get("device", "cuda")),
             strict_device=bool(section.get("strict_device", False)),
             compute_type=str(section.get("compute_type", "int8_float16")),

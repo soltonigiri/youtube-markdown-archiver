@@ -299,7 +299,7 @@ class YomuTubePipeline:
                 audio_path = modules["extract_audio"](primary_media, run_paths.work_dir / "media" / "audio.wav", config)
                 t0 = time.monotonic()
                 asr_segments = modules["transcribe_audio"](audio_path, config, video_id=metadata.video_id)
-                manifest.models["asr"] = f"{config.get('asr.engine', 'faster-whisper')}:{config.get('asr.model', 'medium')}"
+                manifest.models["asr"] = f"{config.get('asr.engine', 'faster-whisper')}:{config.get('asr.model', 'large-v3')}"
                 timings["asr_sec"] = time.monotonic() - t0
                 _mark(manifest, "asr", "done", output={"segments": len(asr_segments), "audio": str(audio_path)})
             else:
