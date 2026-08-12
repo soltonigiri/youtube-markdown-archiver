@@ -26,7 +26,7 @@ core = [
   "webvtt-py>=0.5",
 ]
 download = [
-  "yt-dlp>=2025.1.1",
+  "yt-dlp>=2026.7.4",
 ]
 subtitle = [
   "pysubs2>=1.6",
@@ -48,7 +48,7 @@ diarization = [
   "pyannote.audio>=3.1",
 ]
 full = [
-  "yt-dlp>=2025.1.1",
+  "yt-dlp>=2026.7.4",
   "pysubs2>=1.6",
   "jsonlines>=4.0",
   "faster-whisper>=1.0",
