@@ -183,7 +183,7 @@ def doctor_as_json(checks: list[CheckResult]) -> str:
             "total": len(checks),
             "ok": sum(1 for check in checks if check.status == "ok"),
             "warning": sum(1 for check in checks if check.status not in {"ok", "skipped"} and not check.required),
-            "error": sum(1 for check in checks if check.required and check.status not in {"ok", "skipped"}),
+            "error": missing_required,
             "missing_required": missing_required,
         },
         "checks": [check.to_dict() for check in checks],
