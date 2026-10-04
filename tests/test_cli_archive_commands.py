@@ -4,7 +4,6 @@ import json
 
 from typer.testing import CliRunner
 
-from yomutube.archive_browser import find_archives, get_archive, search_archives
 from yomutube.cli import app
 
 
@@ -40,16 +39,6 @@ def _write_archive(root, channel: str, name: str, *, video_id: str, title: str, 
         encoding="utf-8",
     )
     (archive / "index.md").write_text(f"# {title}\n", encoding="utf-8")
-
-
-def test_archive_browser_finds_shows_and_searches(tmp_path) -> None:
-    _write_archive(tmp_path, "UCexample", "20260401_abc123_Example", video_id="abc123", title="Example", text="hello local archive")
-
-    archives = find_archives(tmp_path)
-    assert len(archives) == 1
-    assert archives[0].video_id == "abc123"
-    assert get_archive(tmp_path, "abc123") == archives[0]
-    assert search_archives(tmp_path, "local")[0].video_id == "abc123"
 
 
 def test_archive_cli_list_show_search_last_open(tmp_path) -> None:

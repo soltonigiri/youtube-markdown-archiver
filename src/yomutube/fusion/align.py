@@ -13,14 +13,14 @@ def best_overlap_match(
     *,
     overlap_threshold: float = 0.50,
 ) -> Segment | None:
-    matches = [
-        candidate
-        for candidate in candidates
-        if time_overlap_ratio(target, candidate) >= overlap_threshold
-    ]
-    if not matches:
-        return None
-    return max(matches, key=lambda candidate: time_overlap_ratio(target, candidate))
+    best = None
+    best_overlap = -1.0
+    for candidate in candidates:
+        overlap = time_overlap_ratio(target, candidate)
+        if overlap >= overlap_threshold and (best is None or overlap > best_overlap):
+            best = candidate
+            best_overlap = overlap
+    return best
 
 
 def suppress_ocr_duplicates(
