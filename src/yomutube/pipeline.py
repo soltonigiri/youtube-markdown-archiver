@@ -4,8 +4,15 @@ import time
 from pathlib import Path
 from typing import Any
 
+from .asr.base import transcribe_audio
 from .config import AppConfig
+from .diarization.base import assign_speakers_to_segments, diarize_audio
+from .download.subtitle_selector import select_subtitle_track
+from .download.ytdlp_client import download_temp_media, extract_metadata
+from .fusion.merge import fuse_segments
+from .media.ffmpeg import extract_audio, find_primary_media
 from .models import ArchiveResult, Manifest, Segment, StepState, VideoMetadata
+from .ocr.base import run_ocr
 from .state import (
     ArchiveLock,
     archive_dir_for,
@@ -20,6 +27,8 @@ from .state import (
     write_json,
     write_manifest,
 )
+from .subtitle.parser import parse_subtitle_file
+from .writers.markdown import write_archive
 
 
 class PipelineError(RuntimeError):
@@ -138,10 +147,6 @@ def should_run_ocr(config: AppConfig, metadata: VideoMetadata, quality: dict[str
     max_duration = config.get("ocr.auto_policy.skip_when.duration_over_sec", 7200)
     if max_duration is not None and metadata.duration_sec > float(max_duration):
         return False
-    min_height = config.get("ocr.auto_policy.skip_when.low_resolution_below_height", 480)
-    height = metadata.raw.get("height") if hasattr(metadata, "raw") else None
-    if height is not None and min_height is not None and int(height) < int(min_height):
-        return False
     return not bool(quality.get("primary"))
 
 
@@ -160,46 +165,17 @@ def processing_plan(metadata: VideoMetadata, track: Any, config: AppConfig) -> d
     }
 
 
-def _import_worker_modules() -> dict[str, Any]:
-    # Imports live here so the package can be imported before optional engines are installed.
-    from .asr.base import transcribe_audio
-    from .diarization.base import assign_speakers_to_segments, diarize_audio
-    from .download.subtitle_selector import select_subtitle_track
-    from .download.ytdlp_client import YtdlpClient
-    from .fusion.merge import fuse_segments
-    from .media.ffmpeg import extract_audio, find_primary_media
-    from .ocr.base import run_ocr
-    from .subtitle.parser import parse_subtitle_file
-    from .writers.markdown import write_archive
-
-    return {
-        "assign_speakers_to_segments": assign_speakers_to_segments,
-        "diarize_audio": diarize_audio,
-        "transcribe_audio": transcribe_audio,
-        "select_subtitle_track": select_subtitle_track,
-        "YtdlpClient": YtdlpClient,
-        "fuse_segments": fuse_segments,
-        "extract_audio": extract_audio,
-        "find_primary_media": find_primary_media,
-        "run_ocr": run_ocr,
-        "parse_subtitle_file": parse_subtitle_file,
-        "write_archive": write_archive,
-    }
-
-
 class YomuTubePipeline:
     def __init__(self, config: AppConfig) -> None:
         self.config = config
 
     def inspect(self, url: str) -> dict[str, Any]:
-        modules = _import_worker_modules()
-        client = modules["YtdlpClient"](self.config)
-        info = client.extract_metadata(url)
+        info = extract_metadata(url, config=self.config)
         effective_config = self.config.with_channel_profile(info)
-        track = modules["select_subtitle_track"](info, effective_config)
+        track = select_subtitle_track(info, effective_config)
         metadata = VideoMetadata.from_info(info)
         plan = processing_plan(metadata, track, effective_config)
-        warnings: list[str] = []
+        warnings = []
         if metadata.duration_sec >= 7200:
             warnings.append("Long video. OCR may take time or be skipped by auto policy.")
         return {
@@ -213,15 +189,12 @@ class YomuTubePipeline:
         }
 
     def transcribe(self, url: str) -> ArchiveResult:
-        modules = _import_worker_modules()
         timings: dict[str, float] = {}
         diagnostics: dict[str, Any] = {"errors": [], "warnings": []}
 
-        client = modules["YtdlpClient"](self.config)
-
         t0 = time.monotonic()
         try:
-            info = client.extract_metadata(url)
+            info = extract_metadata(url, config=self.config)
         except Exception as exc:
             if _is_enabled(self.config.get("archive.write_failed_archive", True)):
                 write_failed_metadata_archive(self.config, url, exc)
@@ -261,14 +234,19 @@ class YomuTubePipeline:
 
         try:
             write_manifest(run_paths.archive_dir, manifest)
-            write_json(run_paths.archive_dir / "metadata.json", client.sanitize_info(info, metadata=metadata))
+            write_json(run_paths.archive_dir / "metadata.json", metadata.to_dict())
             _mark(manifest, "metadata", "done", output="metadata.json")
             write_manifest(run_paths.archive_dir, manifest)
 
-            track = modules["select_subtitle_track"](info, config)
+            track = select_subtitle_track(info, config)
             t0 = time.monotonic()
             try:
-                media_paths = client.download_temp_media(url, run_paths.work_dir, track)
+                media_paths = download_temp_media(
+                    url,
+                    run_paths.work_dir,
+                    config=config,
+                    subtitle_track=track,
+                ).to_dict()
                 _mark(manifest, "download", "done", output={key: str(value) for key, value in media_paths.items() if value})
             except Exception as exc:
                 diagnostics["warnings"].append(f"download failed; subtitle-only fallback may be used: {exc}")
@@ -279,7 +257,7 @@ class YomuTubePipeline:
 
             subtitle_file = media_paths.get("subtitle") if isinstance(media_paths, dict) else None
             if subtitle_file and Path(subtitle_file).exists() and track:
-                subtitle_segments = modules["parse_subtitle_file"](subtitle_file, metadata.video_id, track)
+                subtitle_segments = parse_subtitle_file(subtitle_file, metadata.video_id, track)
             subtitle_info = subtitle_quality(subtitle_segments, metadata, config)
             _mark(
                 manifest,
@@ -289,16 +267,16 @@ class YomuTubePipeline:
             )
             write_manifest(run_paths.archive_dir, manifest)
 
-            primary_media = modules["find_primary_media"](run_paths.work_dir)
+            primary_media = find_primary_media(run_paths.work_dir)
             audio_path = None
             asr_enabled = should_run_asr(config, subtitle_info)
             ocr_enabled = should_run_ocr(config, metadata, subtitle_info)
             if asr_enabled:
                 if primary_media is None:
                     raise PipelineError("ASR is enabled but no downloaded media was found")
-                audio_path = modules["extract_audio"](primary_media, run_paths.work_dir / "media" / "audio.wav", config)
+                audio_path = extract_audio(primary_media, run_paths.work_dir / "media" / "audio.wav", config)
                 t0 = time.monotonic()
-                asr_segments = modules["transcribe_audio"](audio_path, config, video_id=metadata.video_id)
+                asr_segments = transcribe_audio(audio_path, config, video_id=metadata.video_id)
                 manifest.models["asr"] = f"{config.get('asr.engine', 'faster-whisper')}:{config.get('asr.model', 'large-v3')}"
                 timings["asr_sec"] = time.monotonic() - t0
                 _mark(manifest, "asr", "done", output={"segments": len(asr_segments), "audio": str(audio_path)})
@@ -308,7 +286,7 @@ class YomuTubePipeline:
 
             if ocr_enabled and primary_media is not None:
                 t0 = time.monotonic()
-                ocr_segments = modules["run_ocr"](primary_media, metadata.video_id, config)
+                ocr_segments = run_ocr(primary_media, metadata.video_id, config)
                 timings["ocr_sec"] = time.monotonic() - t0
                 _mark(manifest, "ocr", "done" if ocr_segments else "skipped", output={"segments": len(ocr_segments)})
             else:
@@ -319,8 +297,8 @@ class YomuTubePipeline:
             if diarization_enabled:
                 if audio_path is None:
                     raise PipelineError("diarization is enabled but audio was not extracted")
-                diarization_turns = modules["diarize_audio"](audio_path, config, segments=asr_segments)
-                asr_segments = modules["assign_speakers_to_segments"](asr_segments, diarization_turns)
+                diarization_turns = diarize_audio(audio_path, config, segments=asr_segments)
+                asr_segments = assign_speakers_to_segments(asr_segments, diarization_turns)
                 manifest.models["diarization"] = f"{config.get('diarization.engine', 'pyannote')}:{config.get('diarization.model', '')}"
                 _mark(manifest, "diarization", "done", output={"turns": len(diarization_turns)})
             else:
@@ -330,7 +308,7 @@ class YomuTubePipeline:
             t0 = time.monotonic()
             manual_subtitles = [segment for segment in subtitle_segments if segment.source == "manual_subtitle"]
             auto_subtitles = [segment for segment in subtitle_segments if segment.source == "auto_subtitle"]
-            fused_segments = modules["fuse_segments"](
+            fused_segments = fuse_segments(
                 manual_subtitles=manual_subtitles,
                 auto_subtitles=auto_subtitles,
                 asr_segments=asr_segments,
@@ -367,7 +345,7 @@ class YomuTubePipeline:
             manifest.status = "done"
             manifest.finished_at = iso_now()
             _mark(manifest, "markdown", "done", output="index.md")
-            result = modules["write_archive"](
+            result = write_archive(
                 archive_dir=run_paths.archive_dir,
                 metadata=metadata,
                 segments=fused_segments,

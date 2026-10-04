@@ -45,8 +45,9 @@ class DiarizationSettings:
     local_min_segment_ms: int = 500
 
     @classmethod
-    def from_config(cls, config: AppConfig | dict[str, Any] | None) -> "DiarizationSettings":
-        section = _section(config, "diarization")
+    def from_config(cls, config: AppConfig | None) -> "DiarizationSettings":
+        value = config.get("diarization", {}) if config else {}
+        section = value if isinstance(value, dict) else {}
         local = section.get("local_cluster") if isinstance(section.get("local_cluster"), dict) else {}
         fallback = section.get("fallback_engine", "local_cluster")
         return cls(
@@ -65,16 +66,9 @@ class DiarizationSettings:
         )
 
 
-def _section(config: AppConfig | dict[str, Any] | None, key: str) -> dict[str, Any]:
-    if config is None:
-        return {}
-    value = config.get(key, {}) if isinstance(config, AppConfig) else config.get(key, {})
-    return dict(value or {}) if isinstance(value, dict) else {}
-
-
 def diarize_audio(
     audio_path: str | Path,
-    config: AppConfig | dict[str, Any] | None,
+    config: AppConfig | None,
     *,
     segments: list[Segment] | None = None,
 ) -> list[SpeakerTurn]:

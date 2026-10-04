@@ -10,6 +10,7 @@ from yomutube.cli import app
 runner = CliRunner()
 
 
+
 def _write_archive(root, channel: str, name: str, *, video_id: str, title: str, text: str) -> None:
     archive = root / channel / name
     archive.mkdir(parents=True)
@@ -47,6 +48,10 @@ def test_archive_cli_list_show_search_last_open(tmp_path) -> None:
     list_result = runner.invoke(app, ["list", "--archive-dir", str(tmp_path)])
     assert list_result.exit_code == 0
     assert "abc123" in list_result.output
+
+    status_result = runner.invoke(app, ["status", "--archive-dir", str(tmp_path)])
+    assert status_result.exit_code == 0
+    assert status_result.output == list_result.output
 
     show_result = runner.invoke(app, ["show", "abc123", "--archive-dir", str(tmp_path)])
     assert show_result.exit_code == 0

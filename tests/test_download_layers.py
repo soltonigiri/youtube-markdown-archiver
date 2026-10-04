@@ -57,7 +57,7 @@ def test_selects_auto_en_when_explicitly_allowed() -> None:
         },
     }
 
-    track = select_subtitle_track(info, {"subtitles": {"fallback_to_auto": True}})
+    track = select_subtitle_track(info, AppConfig({"subtitles": {"fallback_to_auto": True}}))
 
     assert track is not None
     assert track.source == "auto"

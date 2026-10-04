@@ -5,7 +5,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from yomutube.models import SubtitleTrack, VideoMetadata
+from yomutube.config import AppConfig
+from yomutube.models import SubtitleTrack
 
 
 DEFAULT_REDACT_FIELDS = {
@@ -77,91 +78,32 @@ def import_ytdlp() -> Any:
         raise
 
 
-class YtdlpClient:
-    def __init__(self, config: Any = None) -> None:
-        self.config = config
-
-    def extract_metadata(
-        self,
-        url: str,
-        *,
-        download: bool = False,
-        sanitize: bool = False,
-        ytdlp_options: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        return extract_metadata(
-            url,
-            config=self.config,
-            download=download,
-            sanitize=sanitize,
-            ytdlp_options=ytdlp_options,
-        )
-
-    def sanitize_info(self, info: dict[str, Any], *, metadata: VideoMetadata | None = None) -> dict[str, Any]:
-        if metadata is not None:
-            return metadata.to_dict()
-        return sanitize_info(info, _redact_fields(self.config))
-
-    def download_temp_media(
-        self,
-        url: str,
-        work_dir: str | Path,
-        subtitle_track: SubtitleTrack | None = None,
-        *,
-        ytdlp_options: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
-        result = download_temp_media(
-            url,
-            work_dir,
-            config=self.config,
-            subtitle_track=subtitle_track,
-            ytdlp_options=ytdlp_options,
-        )
-        return result.to_dict()
-
-
-def _config_get(config: Any, dotted: str, default: Any = None) -> Any:
-    if config is None:
-        return default
-    if isinstance(config, dict):
-        current: Any = config
-        for part in dotted.split("."):
-            if not isinstance(current, dict) or part not in current:
-                return default
-            current = current[part]
-        return current
-    getter = getattr(config, "get", None)
-    if callable(getter):
-        return getter(dotted, default)
-    return default
-
-
-def _base_options(config: Any = None) -> dict[str, Any]:
+def _base_options(config: AppConfig | None = None) -> dict[str, Any]:
     options: dict[str, Any] = {
         "quiet": True,
         "no_warnings": True,
-        "noplaylist": bool(_config_get(config, "ytdlp.no_playlist", True)),
+        "noplaylist": bool(config.get("ytdlp.no_playlist", True) if config else True),
     }
-    fmt = _config_get(config, "ytdlp.format")
+    fmt = config.get("ytdlp.format") if config else None
     if fmt:
         options["format"] = str(fmt)
-    cookies_file = _config_get(config, "ytdlp.cookies_file")
+    cookies_file = config.get("ytdlp.cookies_file") if config else None
     if cookies_file:
         options["cookiefile"] = str(Path(str(cookies_file)).expanduser())
-    user_agent = _config_get(config, "ytdlp.user_agent")
+    user_agent = config.get("ytdlp.user_agent") if config else None
     if user_agent:
         options["http_headers"] = {"User-Agent": str(user_agent)}
-    retries = _config_get(config, "ytdlp.retries")
+    retries = config.get("ytdlp.retries") if config else None
     if retries is not None:
         options["retries"] = int(retries)
-    sleep_interval = _config_get(config, "ytdlp.sleep_interval_sec")
+    sleep_interval = config.get("ytdlp.sleep_interval_sec") if config else None
     if sleep_interval is not None:
         options["sleep_interval"] = float(sleep_interval)
     return options
 
 
-def _redact_fields(config: Any = None) -> set[str]:
-    fields = _config_get(config, "compliance.redact_infojson_fields")
+def _redact_fields(config: AppConfig | None = None) -> set[str]:
+    fields = config.get("compliance.redact_infojson_fields") if config else None
     if fields is None:
         return set(DEFAULT_REDACT_FIELDS)
     return {str(field) for field in fields}
@@ -192,7 +134,7 @@ def sanitize_info(info: dict[str, Any], redact_fields: list[str] | set[str] | tu
 
 def extract_metadata(
     url: str,
-    config: Any = None,
+    config: AppConfig | None = None,
     *,
     download: bool = False,
     sanitize: bool = False,
@@ -213,10 +155,6 @@ def extract_metadata(
     return info
 
 
-def extract_video_metadata(url: str, config: Any = None) -> VideoMetadata:
-    return VideoMetadata.from_info(extract_metadata(url, config=config, download=False))
-
-
 def _subtitle_options(track: SubtitleTrack | None) -> dict[str, Any]:
     if track is None:
         return {"writesubtitles": False, "writeautomaticsub": False}
@@ -231,7 +169,7 @@ def _subtitle_options(track: SubtitleTrack | None) -> dict[str, Any]:
 def download_temp_media(
     url: str,
     work_dir: str | Path,
-    config: Any = None,
+    config: AppConfig | None = None,
     *,
     subtitle_track: SubtitleTrack | None = None,
     ytdlp_options: dict[str, Any] | None = None,
@@ -250,9 +188,9 @@ def download_temp_media(
                 "default": str(media_dir / "%(id)s.%(ext)s"),
                 "subtitle": str(subtitle_dir / "%(id)s.%(ext)s"),
             },
-            "writeinfojson": bool(_config_get(config, "ytdlp.write_info_json", True)),
-            "writedescription": bool(_config_get(config, "ytdlp.write_description", True)),
-            "writethumbnail": bool(_config_get(config, "ytdlp.write_thumbnail", True)),
+            "writeinfojson": bool(config.get("ytdlp.write_info_json", True) if config else True),
+            "writedescription": bool(config.get("ytdlp.write_description", True) if config else True),
+            "writethumbnail": bool(config.get("ytdlp.write_thumbnail", True) if config else True),
         }
     )
     options.update(_subtitle_options(subtitle_track))

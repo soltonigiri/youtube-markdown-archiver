@@ -44,11 +44,11 @@ def export_archive(archive_dir: str | Path, format: str, *, output: str | Path |
     speaker_aliases = read_speaker_aliases(archive)
 
     if fmt == "srt":
-        content = export_srt(metadata, segments, speaker_aliases=speaker_aliases)
+        content = export_srt(segments, speaker_aliases=speaker_aliases)
     elif fmt == "vtt":
-        content = export_vtt(metadata, segments, speaker_aliases=speaker_aliases)
+        content = export_vtt(segments, speaker_aliases=speaker_aliases)
     elif fmt == "txt":
-        content = export_txt(metadata, segments, speaker_aliases=speaker_aliases)
+        content = export_txt(segments, speaker_aliases=speaker_aliases)
     elif fmt == "csv":
         content = export_csv(metadata, segments, speaker_aliases=speaker_aliases)
     elif fmt == "obsidian":
@@ -75,7 +75,11 @@ def export_archive(archive_dir: str | Path, format: str, *, output: str | Path |
     return ExportResult(output_path=target, profile_path=profile_path, format=fmt)
 
 
-def export_srt(metadata: Mapping[str, Any], segments: Iterable[Mapping[str, Any]], *, speaker_aliases: Mapping[str, str] | None = None) -> str:
+def export_srt(
+    segments: Iterable[Mapping[str, Any]],
+    *,
+    speaker_aliases: Mapping[str, str] | None = None,
+) -> str:
     lines: list[str] = []
     for index, segment in enumerate(_transcript_segments(segments), start=1):
         lines.append(str(index))
@@ -85,7 +89,11 @@ def export_srt(metadata: Mapping[str, Any], segments: Iterable[Mapping[str, Any]
     return "\n".join(lines).rstrip() + "\n"
 
 
-def export_vtt(metadata: Mapping[str, Any], segments: Iterable[Mapping[str, Any]], *, speaker_aliases: Mapping[str, str] | None = None) -> str:
+def export_vtt(
+    segments: Iterable[Mapping[str, Any]],
+    *,
+    speaker_aliases: Mapping[str, str] | None = None,
+) -> str:
     lines = ["WEBVTT", ""]
     for segment in _transcript_segments(segments):
         lines.append(f"{_vtt_time(segment.get('start_ms'))} --> {_vtt_time(segment.get('end_ms'))}")
@@ -94,7 +102,11 @@ def export_vtt(metadata: Mapping[str, Any], segments: Iterable[Mapping[str, Any]
     return "\n".join(lines).rstrip() + "\n"
 
 
-def export_txt(metadata: Mapping[str, Any], segments: Iterable[Mapping[str, Any]], *, speaker_aliases: Mapping[str, str] | None = None) -> str:
+def export_txt(
+    segments: Iterable[Mapping[str, Any]],
+    *,
+    speaker_aliases: Mapping[str, str] | None = None,
+) -> str:
     return "".join(
         f"[{ms_to_timecode(int(segment.get('start_ms') or 0), include_millis=True)}] {_display_text(segment, speaker_aliases=speaker_aliases)}\n"
         for segment in _transcript_segments(segments)

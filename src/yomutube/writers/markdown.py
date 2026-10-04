@@ -2,20 +2,19 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, is_dataclass
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
 import yaml
 
 from yomutube.archive_assets import build_archive_asset_rows, read_jsonl_for_display
+from yomutube.config import AppConfig
 from yomutube.models import ArchiveResult, Manifest, VideoMetadata
-from yomutube.state import atomic_write_text
+from yomutube.state import atomic_write_text, iso_now
 from yomutube.utils.timecode import ms_to_timecode, seconds_to_timecode, youtube_seconds
 from yomutube.writers.jsonl import write_jsonl
 
 
-JST = timezone(timedelta(hours=9))
 DEFAULT_SOURCE_PRIORITY = "manual_subtitle > asr > auto_subtitle"
 TRANSCRIPT_SOURCES = {"manual_subtitle", "asr", "auto_subtitle"}
 
@@ -34,12 +33,12 @@ def write_archive(
     include_frontmatter: bool = True,
     include_ocr_events: bool = True,
     youtube_timestamp_links: bool = True,
-    config: Any = None,
+    config: AppConfig | None = None,
 ) -> ArchiveResult:
     if config is not None:
-        include_frontmatter = bool(_config_get(config, "markdown.include_frontmatter", include_frontmatter))
-        include_ocr_events = bool(_config_get(config, "markdown.include_ocr_events", include_ocr_events))
-        youtube_timestamp_links = bool(_config_get(config, "markdown.youtube_timestamp_links", youtube_timestamp_links))
+        include_frontmatter = bool(config.get("markdown.include_frontmatter", include_frontmatter))
+        include_ocr_events = bool(config.get("markdown.include_ocr_events", include_ocr_events))
+        youtube_timestamp_links = bool(config.get("markdown.youtube_timestamp_links", youtube_timestamp_links))
     target = _resolve_archive_dir(archive_dir, manifest)
     target.mkdir(parents=True, exist_ok=True)
 
@@ -62,7 +61,7 @@ def write_archive(
     _write_json(target / "metadata.json", metadata_row)
     _ensure_plain_json(target / "speaker_aliases.json", speaker_aliases)
     _ensure_jsonl(target / "corrections.jsonl")
-    if config is not None and bool(_config_get(config, "archive.write_effective_config", True)):
+    if config is not None and bool(config.get("archive.write_effective_config", True)):
         _write_effective_config(target / "effective_config.yaml", config)
     write_jsonl(target / "segments.jsonl", segment_rows)
     write_jsonl(target / "raw_asr.jsonl", raw_asr_rows)
@@ -164,31 +163,6 @@ def render_index_markdown(
     return "\n".join(lines).rstrip() + "\n"
 
 
-class MarkdownArchiveWriter:
-    def __init__(
-        self,
-        archive_dir: str | Path,
-        *,
-        program_version: str = "0.1.0",
-        include_frontmatter: bool = True,
-        include_ocr_events: bool = True,
-        youtube_timestamp_links: bool = True,
-    ) -> None:
-        self.archive_dir = Path(archive_dir)
-        self.program_version = program_version
-        self.include_frontmatter = include_frontmatter
-        self.include_ocr_events = include_ocr_events
-        self.youtube_timestamp_links = youtube_timestamp_links
-
-    def write_archive(self, **kwargs: Any) -> ArchiveResult:
-        kwargs.setdefault("archive_dir", self.archive_dir)
-        kwargs.setdefault("program_version", self.program_version)
-        kwargs.setdefault("include_frontmatter", self.include_frontmatter)
-        kwargs.setdefault("include_ocr_events", self.include_ocr_events)
-        kwargs.setdefault("youtube_timestamp_links", self.youtube_timestamp_links)
-        return write_archive(**kwargs)
-
-
 def _resolve_archive_dir(archive_dir: str | Path | None, manifest: Manifest | dict[str, Any] | None) -> Path:
     if archive_dir is not None:
         return Path(archive_dir)
@@ -224,7 +198,7 @@ def _write_archive_assets(
     raw_asr: list[dict[str, Any]],
     raw_ocr: list[dict[str, Any]],
     speaker_aliases: dict[str, str],
-    config: Any,
+    config: AppConfig | None,
 ) -> None:
     assets = build_archive_asset_rows(
         metadata=metadata,
@@ -244,17 +218,14 @@ def _write_archive_assets(
         ("archive.write_visual_text", "slides.jsonl", assets["slides"]),
     ]
     for dotted, filename, rows in jsonl_assets:
-        if bool(_config_get(config, dotted, True)):
+        if config is None or bool(config.get(dotted, True)):
             write_jsonl(target / filename, rows)
-    if bool(_config_get(config, "archive.write_quality_report", True)):
+    if config is None or bool(config.get("archive.write_quality_report", True)):
         _write_json(target / "quality.json", assets["quality"])
 
 
-def _write_effective_config(path: Path, config: Any) -> None:
-    data = config.data if hasattr(config, "data") else config
-    if not isinstance(data, dict):
-        data = {"value": str(data)}
-    content = yaml.safe_dump(data, allow_unicode=True, sort_keys=True)
+def _write_effective_config(path: Path, config: AppConfig) -> None:
+    content = yaml.safe_dump(config.data, allow_unicode=True, sort_keys=True)
     atomic_write_text(path, content if content.endswith("\n") else content + "\n")
 
 
@@ -349,14 +320,14 @@ def _coerce_manifest(
             status="done",
             steps={"markdown": "done"},
             models=_diagnostic_models(diagnostics),
-            created_at=_iso_now(),
-            finished_at=_iso_now(),
+            created_at=iso_now(),
+            finished_at=iso_now(),
             archive_path=str(archive_dir),
         )
     if not result.archive_path:
         result.archive_path = str(archive_dir)
     if not result.finished_at:
-        result.finished_at = _iso_now()
+        result.finished_at = iso_now()
     return result
 
 
@@ -381,7 +352,7 @@ def _frontmatter(
 ) -> list[str]:
     program = manifest.program if manifest else "YomuTube"
     version = manifest.version if manifest else "0.1.0"
-    processed_at = manifest.finished_at if manifest and manifest.finished_at else _iso_now()
+    processed_at = manifest.finished_at if manifest and manifest.finished_at else iso_now()
     values = [
         ("program", program, False),
         ("program_version", version, False),
@@ -618,17 +589,6 @@ def _nested(data: dict[str, Any], *keys: str, default: Any = None) -> Any:
     return current
 
 
-def _config_get(config: Any, dotted: str, default: Any) -> Any:
-    if isinstance(config, dict):
-        return _nested(config, *dotted.split("."), default=default)
-    if hasattr(config, "get"):
-        try:
-            return config.get(dotted, default)
-        except TypeError:
-            return default
-    return default
-
-
 def _yaml_value(value: Any, *, quote: bool) -> str:
     if value is None:
         return "null"
@@ -644,7 +604,3 @@ def _yaml_value(value: Any, *, quote: bool) -> str:
 
 def _escape_table(value: str) -> str:
     return value.replace("\n", " ").replace("|", "\\|").strip()
-
-
-def _iso_now() -> str:
-    return datetime.now(JST).isoformat(timespec="seconds")

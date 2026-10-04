@@ -3,28 +3,13 @@ from __future__ import annotations
 import fnmatch
 from typing import Any
 
+from yomutube.config import AppConfig
 from yomutube.models import SubtitleTrack
 
 
 LANGUAGE_PRIORITY = ("ja.*", "en.*")
 FORMAT_PRIORITY = ("vtt", "json3", "ttml", "srv3", "best")
 EXCLUDED_LANGUAGES = ("live_chat",)
-
-
-def _config_get(config: Any, dotted: str, default: Any = None) -> Any:
-    if config is None:
-        return default
-    if isinstance(config, dict):
-        current: Any = config
-        for part in dotted.split("."):
-            if not isinstance(current, dict) or part not in current:
-                return default
-            current = current[part]
-        return current
-    getter = getattr(config, "get", None)
-    if callable(getter):
-        return getter(dotted, default)
-    return default
 
 
 def _matches_language(language: str, pattern: str) -> bool:
@@ -82,7 +67,7 @@ def _find_language(
     return None
 
 
-def select_subtitle_track(info: dict[str, Any], config: Any = None) -> SubtitleTrack | None:
+def select_subtitle_track(info: dict[str, Any], config: AppConfig | None = None) -> SubtitleTrack | None:
     """Select one subtitle track from yt-dlp info.
 
     Priority is manual ja/en. Automatic captions are considered only when
@@ -93,10 +78,10 @@ def select_subtitle_track(info: dict[str, Any], config: Any = None) -> SubtitleT
     if not info:
         return None
 
-    languages = tuple(_config_get(config, "ytdlp.subtitle_languages", LANGUAGE_PRIORITY) or LANGUAGE_PRIORITY)
-    formats = tuple(_config_get(config, "ytdlp.subtitle_formats", FORMAT_PRIORITY) or FORMAT_PRIORITY)
-    excluded = tuple(_config_get(config, "ytdlp.exclude_subtitle_languages", EXCLUDED_LANGUAGES) or ())
-    fallback_to_auto = bool(_config_get(config, "subtitles.fallback_to_auto", False))
+    languages = tuple((config.get("ytdlp.subtitle_languages", LANGUAGE_PRIORITY) if config else None) or LANGUAGE_PRIORITY)
+    formats = tuple((config.get("ytdlp.subtitle_formats", FORMAT_PRIORITY) if config else None) or FORMAT_PRIORITY)
+    excluded = tuple((config.get("ytdlp.exclude_subtitle_languages", EXCLUDED_LANGUAGES) if config else EXCLUDED_LANGUAGES) or ())
+    fallback_to_auto = bool(config.get("subtitles.fallback_to_auto", False) if config else False)
 
     sources = [("manual", "subtitles")]
     if fallback_to_auto:
@@ -125,6 +110,3 @@ def select_subtitle_track(info: dict[str, Any], config: Any = None) -> SubtitleT
                 raw=raw,
             )
     return None
-
-
-select = select_subtitle_track

@@ -5,6 +5,7 @@ import wave
 import numpy as np
 import pytest
 
+from yomutube.config import AppConfig
 from yomutube.diarization.base import (
     DiarizationEngineUnavailable,
     DiarizationSettings,
@@ -27,7 +28,7 @@ def _write_wav(path, samples: np.ndarray, sample_rate: int = 16000) -> None:
 
 
 def test_diarization_off_returns_empty_list() -> None:
-    assert diarize_audio("audio.wav", {"diarization": {"enabled": False}}) == []
+    assert diarize_audio("audio.wav", AppConfig({"diarization": {"enabled": False}})) == []
 
 
 def test_diarization_on_without_pyannote_raises(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -37,7 +38,10 @@ def test_diarization_on_without_pyannote_raises(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr("yomutube.diarization.pyannote_engine.importlib.import_module", fail_import)
 
     with pytest.raises(DiarizationEngineUnavailable):
-        diarize_audio("audio.wav", {"diarization": {"enabled": True, "engine": "pyannote", "fallback_engine": None}})
+        diarize_audio(
+            "audio.wav",
+            AppConfig({"diarization": {"enabled": True, "engine": "pyannote", "fallback_engine": None}}),
+        )
 
 
 def test_pyannote_unavailable_uses_local_fallback(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -53,7 +57,12 @@ def test_pyannote_unavailable_uses_local_fallback(monkeypatch: pytest.MonkeyPatc
     monkeypatch.setattr(PyannoteDiarizationEngine, "diarize", fail_pyannote)
     monkeypatch.setattr(LocalClusterDiarizationEngine, "diarize", fallback_local)
 
-    turns = diarize_audio("audio.wav", {"diarization": {"enabled": True, "engine": "pyannote", "fallback_engine": "local_cluster"}})
+    turns = diarize_audio(
+        "audio.wav",
+        AppConfig(
+            {"diarization": {"enabled": True, "engine": "pyannote", "fallback_engine": "local_cluster"}}
+        ),
+    )
 
     assert turns == [SpeakerTurn(speaker="SPEAKER_00", start_ms=0, end_ms=1000, metadata={"engine": "local_cluster"})]
 
@@ -76,13 +85,15 @@ def test_local_cluster_diarization_splits_synthetic_segments(tmp_path) -> None:
 
     turns = diarize_audio(
         audio_path,
-        {
-            "diarization": {
-                "enabled": True,
-                "engine": "local_cluster",
-                "local_cluster": {"num_speakers": 2, "min_segment_ms": 200},
+        AppConfig(
+            {
+                "diarization": {
+                    "enabled": True,
+                    "engine": "local_cluster",
+                    "local_cluster": {"num_speakers": 2, "min_segment_ms": 200},
+                }
             }
-        },
+        ),
         segments=segments,
     )
 

@@ -101,8 +101,9 @@ class OCRSettings:
     languages: list[str] = field(default_factory=lambda: ["ja", "en"])
 
     @classmethod
-    def from_config(cls, config: AppConfig | dict[str, Any] | None) -> "OCRSettings":
-        section = _section(config, "ocr")
+    def from_config(cls, config: AppConfig | None) -> "OCRSettings":
+        value = config.get("ocr", {}) if config else {}
+        section = value if isinstance(value, dict) else {}
         languages = section.get("languages") or ["ja", "en"]
         return cls(
             enabled=bool(section.get("enabled", True)),
@@ -110,13 +111,6 @@ class OCRSettings:
             fallback_engine=section.get("fallback_engine", "paddleocr"),
             languages=[str(lang) for lang in languages],
         )
-
-
-def _section(config: AppConfig | dict[str, Any] | None, key: str) -> dict[str, Any]:
-    if config is None:
-        return {}
-    value = config.get(key, {}) if isinstance(config, AppConfig) else config.get(key, {})
-    return dict(value or {}) if isinstance(value, dict) else {}
 
 
 def coerce_bbox(value: Any) -> BBox | None:
@@ -166,7 +160,7 @@ def make_observation(
 
 def recognize_frame(
     image: Any,
-    config: AppConfig | dict[str, Any] | None,
+    config: AppConfig | None,
     *,
     frame_ms: int,
     video_id: str = "unknown",
@@ -260,7 +254,7 @@ def _engine(name: str, settings: OCRSettings) -> OCREngine:
     raise OCRError(f"unsupported OCR engine: {name}")
 
 
-def run_ocr(video_path: str | Path, video_id: str, config: AppConfig | dict[str, Any] | None) -> list[Segment]:
+def run_ocr(video_path: str | Path, video_id: str, config: AppConfig | None) -> list[Segment]:
     settings = OCRSettings.from_config(config)
     if not settings.enabled:
         return []
@@ -268,7 +262,8 @@ def run_ocr(video_path: str | Path, video_id: str, config: AppConfig | dict[str,
     from yomutube.media.frames import iter_roi_frames
     from .dedupe import dedupe_observations
 
-    ocr_section = _section(config, "ocr")
+    value = config.get("ocr", {}) if config else {}
+    ocr_section = value if isinstance(value, dict) else {}
     sampling = ocr_section.get("frame_sampling") if isinstance(ocr_section.get("frame_sampling"), dict) else {}
     regions = ocr_section.get("regions") if isinstance(ocr_section.get("regions"), list) else None
     region_by_name = {str(region.get("name")): region for region in regions or [] if isinstance(region, dict)}

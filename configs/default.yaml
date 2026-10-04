@@ -1,16 +1,12 @@
 app:
-  name: YomuTube
   version: "0.1.0"
 
 paths:
   archive_dir: "data/archives"
   work_dir: "data/work"
-  model_dir: "data/models"
-  cache_dir: "data/cache"
 
 ytdlp:
   no_playlist: true
-  max_height: 1080
   format: "bv*[height<=1080][vcodec*=avc1]+ba[ext=m4a]/bv*[height<=1080][vcodec!*=av01]+ba/b[height<=1080][vcodec!*=av01]/b[height<=1080]/b"
   write_info_json: true
   write_description: true
@@ -32,29 +28,18 @@ ytdlp:
   sleep_interval_sec: 1
 
 subtitles:
-  enabled: true
-  policy: prefer_manual
   fallback_to_auto: false
-  min_coverage_ratio: 0.25
   min_coverage_ratio_for_available: 0.25
   min_coverage_ratio_for_primary: 0.85
-  normalize:
-    unicode: NFKC
-    remove_music_notes: true
-    collapse_whitespace: true
 
 media:
   audio_sample_rate: 16000
   audio_channels: 1
   audio_codec: pcm_s16le
-  frame_backend: opencv
-  scene_change_detection: true
-  max_video_height_for_ocr: 1080
 
 asr:
   enabled: true
   when: no_good_subtitle
-  good_subtitle_coverage_ratio: 0.85
   engine: faster-whisper
   model: large-v3
   device: cuda
@@ -88,8 +73,6 @@ ocr:
     - en
   frame_sampling:
     subtitle_roi_fps: 0.1
-    full_frame_interval_sec: 10
-    scene_change_threshold: 0.35
   regions:
     - name: bottom_caption
       role: caption
@@ -140,7 +123,6 @@ fusion:
     - manual_subtitle
     - asr
     - auto_subtitle
-  ocr_display_policy: separate_if_not_duplicate
   duplicate_similarity_threshold: 0.82
   overlap_threshold: 0.50
   merge_gap_ms: 700
@@ -148,23 +130,14 @@ fusion:
 
 markdown:
   include_frontmatter: true
-  include_metadata_section: true
-  include_source_links: true
   include_ocr_events: true
-  include_confidence: false
-  timestamp_format: "HH:MM:SS.mmm"
   youtube_timestamp_links: true
 
 performance:
-  gpu_jobs: 1
-  cpu_workers: 4
-  ocr_workers: 2
   ffmpeg_threads: 4
 
 storage:
   keep_temp_media: false
-  keep_debug_frames: false
-  keep_raw_subtitle_files: true
 
 runtime:
   resume: true
@@ -173,38 +146,25 @@ runtime:
 
 modes:
   quick:
-    subtitles:
-      enabled: true
     asr:
       when: no_good_subtitle
       model: small
     ocr:
       enabled: false
   standard:
-    subtitles:
-      enabled: true
     asr:
       when: no_good_subtitle
       model: large-v3
     ocr:
       enabled: false
   full:
-    subtitles:
-      enabled: true
     asr:
       when: always
       model: large-v3
     ocr:
       enabled: true
-    diagnostics:
-      keep_conflicts: true
-
-network:
-  allow_model_download: true
-  allow_cloud_api: false
 
 compliance:
-  delete_temp_video_after_success: true
   redact_infojson_fields:
     - requested_formats
     - formats

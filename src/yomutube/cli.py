@@ -201,6 +201,7 @@ def build_index(
     console.print(f"Indexed: {result.segment_count} segments -> {target}")
 
 
+@app.command(name="status")
 @app.command(name="list")
 def list_archives(
     archive_dir: Optional[Path] = typer.Option(None, "--archive-dir", help="archive root"),
@@ -305,18 +306,6 @@ def open_archive(
     if not command:
         raise typer.BadParameter("$EDITOR is not set")
     subprocess.run([command, str(index_path)], check=True)
-
-
-@app.command()
-def status(
-    archive_dir: Optional[Path] = typer.Option(None, "--archive-dir", help="archive root"),
-    config: Optional[Path] = typer.Option(None, "--config", help="設定ファイル path"),
-    limit: int = typer.Option(50, "--limit", help="表示件数"),
-) -> None:
-    """running / failed / done archive を一覧表示します。"""
-
-    for archive in find_archives(_archive_root(config, archive_dir))[:limit]:
-        _print_archive_line(archive)
 
 
 @app.command()

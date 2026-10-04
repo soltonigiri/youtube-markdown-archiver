@@ -174,14 +174,6 @@ def _archive_matches_filters(archive: ArchiveSummary, filters: Mapping[str, Any]
     return _contains_any(values, channel_terms)
 
 
-def _archive_has_filtered_segment(path: Path, filters: Mapping[str, Any] | None) -> bool:
-    if not _segment_filters_requested(filters):
-        return True
-    if _only_conflicts_filter(filters) and _read_jsonl(path / "conflicts.jsonl"):
-        return True
-    return any(_row_matches_filters(row, filters) for row in _read_jsonl(path / "segments.jsonl"))
-
-
 def _row_matches_filters(row: Mapping[str, Any], filters: Mapping[str, Any] | None) -> bool:
     speaker_terms = _filter_terms(filters, "speaker")
     if speaker_terms and not _contains_any([row.get("speaker")], speaker_terms):

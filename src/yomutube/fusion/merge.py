@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import replace
-from typing import Any, Iterable
+from typing import Iterable
 
+from yomutube.config import AppConfig
 from yomutube.models import Segment
 from yomutube.utils.text import normalize_text
 
@@ -57,13 +58,15 @@ def fuse_segments(
     auto_subtitles: list[Segment] | None = None,
     asr_segments: list[Segment] | None = None,
     ocr_segments: list[Segment] | None = None,
-    config: Any = None,
+    config: AppConfig | None = None,
 ) -> list[Segment]:
-    priority = _config_get(config, "fusion.primary_text_priority", DEFAULT_PRIORITY)
-    overlap_threshold = float(_config_get(config, "fusion.overlap_threshold", 0.50))
-    duplicate_similarity_threshold = float(_config_get(config, "fusion.duplicate_similarity_threshold", 0.82))
-    merge_gap_ms = int(_config_get(config, "fusion.merge_gap_ms", 700))
-    max_segment_chars = int(_config_get(config, "fusion.max_segment_chars", 180))
+    priority = config.get("fusion.primary_text_priority", DEFAULT_PRIORITY) if config else DEFAULT_PRIORITY
+    overlap_threshold = float(config.get("fusion.overlap_threshold", 0.50) if config else 0.50)
+    duplicate_similarity_threshold = float(
+        config.get("fusion.duplicate_similarity_threshold", 0.82) if config else 0.82
+    )
+    merge_gap_ms = int(config.get("fusion.merge_gap_ms", 700) if config else 700)
+    max_segment_chars = int(config.get("fusion.max_segment_chars", 180) if config else 180)
 
     transcript_candidates = list(manual_subtitles or []) + list(asr_segments or []) + list(auto_subtitles or [])
     transcript_candidates.sort(key=lambda item: (source_rank(item.source, priority), item.start_ms, item.end_ms))
@@ -115,26 +118,3 @@ def _merge_confidence(left: float | None, right: float | None) -> float | None:
     if right is None:
         return left
     return (left + right) / 2.0
-
-
-def _config_get(config: Any, dotted: str, default: Any) -> Any:
-    if config is None:
-        return default
-    if isinstance(config, dict):
-        return _dict_get(config, dotted, default)
-    if hasattr(config, "get"):
-        try:
-            value = config.get(dotted, default)
-        except TypeError:
-            value = _dict_get(config, dotted, default)
-        return default if value is None else value
-    return default
-
-
-def _dict_get(data: dict[str, Any], dotted: str, default: Any) -> Any:
-    current: Any = data
-    for part in dotted.split("."):
-        if not isinstance(current, dict) or part not in current:
-            return default
-        current = current[part]
-    return current
