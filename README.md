@@ -18,14 +18,12 @@ python -m pip install -e ".[download,asr]"
 
 | extra | 機能・依存ライブラリ |
 | --- | --- |
-| `core` | 基本依存ライブラリ |
-| `subtitle` | 字幕解析の補助ライブラリ |
 | `download` | yt-dlpによるメタデータ・字幕・動画の取得 |
 | `asr` | faster-whisperによる音声認識 |
 | `ocr` | OpenCVとTesseractのPythonアダプター |
 | `paddleocr` | PaddleOCRとPaddlePaddle |
 | `diarization` | pyannote.audioによる話者分離 |
-| `full` | download・subtitle・asr・ocr・diarizationの一括インストール |
+| `full` | download・asr・ocr・diarizationの一括インストール |
 | `dev` | テスト用の依存ライブラリ |
 
 たとえば、開発と全機能の利用には`python -m pip install -e ".[dev,full]"`を使います。PaddleOCRは`full`に含まれないため、必要なら`paddleocr`も指定してください。
@@ -55,11 +53,11 @@ python -m yomutube export VIDEO_ID --format srt
 python -m yomutube quote VIDEO_ID --at 00:01:23
 ```
 
-設定は`configs/default.yaml`を基準に、プロファイル・モード・CLIオプションで上書きできます。詳細は各コマンドの`--help`と[処理・出力仕様](仕様書.md)を参照してください。
+設定は`configs/default.yaml`を基準に、プロファイル・モード・CLIオプションで上書きできます。`configs/channels/*.yaml`ではチャンネル別の設定を指定できます。詳細は各コマンドの`--help`と[処理・出力仕様](仕様書.md)を参照してください。
 
 ## 出力
 
-既定の保存先は`data/archives/<channel>/<title>/`、一時処理用の保存先は`data/work/`です。モデルは`data/models/`、キャッシュは`data/cache/`に保存します。
+既定の保存先は`data/archives/<channel>/<title>/`、一時処理用の保存先は`data/work/`です。
 
 | ファイル | 内容 |
 | --- | --- |

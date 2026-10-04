@@ -80,7 +80,6 @@ def make_search_filters(
     channel: str | None = None,
     ocr: bool | None = None,
     conflicts: bool | None = None,
-    semantic: bool | None = None,
 ) -> dict[str, Any]:
     return {
         key: value
@@ -90,7 +89,6 @@ def make_search_filters(
             "channel": channel,
             "ocr": ocr,
             "conflicts": conflicts,
-            "semantic": semantic,
         }.items()
         if value not in (None, "", [], (), set())
     }

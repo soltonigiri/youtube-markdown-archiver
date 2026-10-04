@@ -6,6 +6,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from yomutube.config import AppConfig
 
 VIDEO_EXTENSIONS = {".mp4", ".mkv", ".webm", ".mov", ".m4v", ".avi", ".flv"}
 AUDIO_EXTENSIONS = {".m4a", ".mp3", ".opus", ".weba", ".aac", ".ogg", ".wav"}
@@ -99,7 +100,7 @@ def find_primary_media(directory: str | Path, *, prefer_video: bool = True) -> P
 def extract_audio(
     input_path: str | Path,
     output_path: str | Path | None = None,
-    config: Any = None,
+    config: AppConfig | None = None,
     *,
     ffmpeg_binary: str = "ffmpeg",
     overwrite: bool = True,

@@ -1,31 +1,15 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
 
+from yomutube.config import AppConfig
 from yomutube.media import ffmpeg as ffmpeg_helpers
-
-
-def _config_get(config: Any, dotted: str, default: Any = None) -> Any:
-    if config is None:
-        return default
-    if isinstance(config, dict):
-        current: Any = config
-        for part in dotted.split("."):
-            if not isinstance(current, dict) or part not in current:
-                return default
-            current = current[part]
-        return current
-    getter = getattr(config, "get", None)
-    if callable(getter):
-        return getter(dotted, default)
-    return default
 
 
 def extract_audio_wav(
     input_path: str | Path,
     output_path: str | Path | None = None,
-    config: Any = None,
+    config: AppConfig | None = None,
     *,
     ffmpeg_binary: str = "ffmpeg",
     overwrite: bool = True,
@@ -37,10 +21,10 @@ def extract_audio_wav(
     target = Path(output_path).expanduser() if output_path else source.parent / "audio.wav"
     target.parent.mkdir(parents=True, exist_ok=True)
 
-    sample_rate = int(_config_get(config, "media.audio_sample_rate", 16000))
-    channels = int(_config_get(config, "media.audio_channels", 1))
-    codec = str(_config_get(config, "media.audio_codec", "pcm_s16le"))
-    threads = _config_get(config, "performance.ffmpeg_threads")
+    sample_rate = int(config.get("media.audio_sample_rate", 16000) if config else 16000)
+    channels = int(config.get("media.audio_channels", 1) if config else 1)
+    codec = str(config.get("media.audio_codec", "pcm_s16le") if config else "pcm_s16le")
+    threads = config.get("performance.ffmpeg_threads") if config else None
 
     args = [str(ffmpeg_path), "-y" if overwrite else "-n", "-i", str(source), "-vn"]
     if threads:

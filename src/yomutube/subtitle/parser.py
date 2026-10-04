@@ -260,6 +260,3 @@ def parse_subtitle_file(
     content = Path(path).read_text(encoding="utf-8")
     video_id_value = video_id if isinstance(video_id, str) else None
     return parse_subtitle_text(content, ext, track=actual_track, video_id=video_id_value, language=language, source=source)
-
-
-parse = parse_subtitle_file

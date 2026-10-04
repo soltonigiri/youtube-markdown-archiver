@@ -25,15 +25,15 @@ def test_pure_export_functions_render_transcript_topics_and_speakers(tmp_path: P
     speaker_turns = _read_jsonl(archive / "speaker_turns.jsonl")
     speaker_aliases = _read_json(archive / "speaker_aliases.json")
 
-    srt = export_srt(metadata, segments, speaker_aliases=speaker_aliases)
+    srt = export_srt(segments, speaker_aliases=speaker_aliases)
     assert "00:00:01,240 --> 00:00:03,000\nAlice: Local pipeline introduction." in srt
     assert "Slide title" not in srt
 
-    vtt = export_vtt(metadata, segments, speaker_aliases=speaker_aliases)
+    vtt = export_vtt(segments, speaker_aliases=speaker_aliases)
     assert vtt.startswith("WEBVTT\n\n")
     assert "00:00:04.500 --> 00:00:06.500\nBob: Second point." in vtt
 
-    txt = export_txt(metadata, segments, speaker_aliases=speaker_aliases)
+    txt = export_txt(segments, speaker_aliases=speaker_aliases)
     assert "[00:00:04.500] Bob: Second point." in txt
     assert "Hidden line" not in txt
 

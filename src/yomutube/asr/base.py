@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any
 
 from yomutube.config import AppConfig
 from yomutube.models import Segment
@@ -21,11 +21,6 @@ class ASRDeviceError(ASRError):
     """Raised when the requested ASR device cannot be used."""
 
 
-class ASREngine(Protocol):
-    def transcribe(self, audio_path: str | Path, *, video_id: str) -> list[Segment]:
-        ...
-
-
 @dataclass(slots=True)
 class ASRSettings:
     enabled: bool = True
@@ -42,8 +37,9 @@ class ASRSettings:
     initial_prompt: str | None = None
 
     @classmethod
-    def from_config(cls, config: AppConfig | dict[str, Any] | None) -> "ASRSettings":
-        section = _section(config, "asr")
+    def from_config(cls, config: AppConfig | None) -> "ASRSettings":
+        value = config.get("asr", {}) if config else {}
+        section = value if isinstance(value, dict) else {}
         language = section.get("language", "auto")
         if language == "auto":
             language = None
@@ -61,16 +57,6 @@ class ASRSettings:
             language=language,
             initial_prompt=section.get("initial_prompt"),
         )
-
-
-def _section(config: AppConfig | dict[str, Any] | None, key: str) -> dict[str, Any]:
-    if config is None:
-        return {}
-    if isinstance(config, AppConfig):
-        value = config.get(key, {})
-    else:
-        value = config.get(key, {})
-    return dict(value or {}) if isinstance(value, dict) else {}
 
 
 def make_asr_segment(
@@ -117,7 +103,7 @@ def make_asr_segment(
 
 def transcribe_audio(
     audio_path: str | Path,
-    config: AppConfig | dict[str, Any] | None,
+    config: AppConfig | None,
     *,
     video_id: str = "unknown",
 ) -> list[Segment]:

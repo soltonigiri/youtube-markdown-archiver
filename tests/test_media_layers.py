@@ -4,6 +4,7 @@ import subprocess
 
 import pytest
 
+from yomutube.config import AppConfig
 from yomutube.media import audio, ffmpeg, frames
 
 
@@ -28,7 +29,8 @@ def test_extract_audio_builds_expected_ffmpeg_command(tmp_path, monkeypatch) -> 
 
     monkeypatch.setattr(ffmpeg, "run_command", fake_run)
 
-    result = audio.extract_audio_wav(source, output, {"media": {"audio_sample_rate": 8000}, "performance": {"ffmpeg_threads": 2}})
+    config = AppConfig({"media": {"audio_sample_rate": 8000}, "performance": {"ffmpeg_threads": 2}})
+    result = audio.extract_audio_wav(source, output, config)
 
     assert result == output
     assert calls[0][:4] == ["/usr/bin/ffmpeg", "-y", "-i", str(source)]
